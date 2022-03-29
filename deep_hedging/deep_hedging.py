@@ -196,11 +196,8 @@ def Deep_Hedging_Model(N = None, d = None, m = None, \
             wealth = Add(name = "wealth_" + str(j))([wealth,payoff])
     return Model(inputs=inputs, outputs=wealth)
 
-def Delta_SubModel(model = None, days_from_today = None, share_stretegy_across_time = False, strategy_type = "simple"):
-    if strategy_type == "simple":
-        inputs = model.get_layer("delta_" + str(days_from_today)).input
-    elif strategy_type == "recurrent":
-        inputs = model.get_layer("delta_" + str(days_from_today)).input
+def Delta_SubModel(model = None, days_from_today = None, share_stretegy_across_time = False):
+    inputs = model.get_layer("delta_" + str(days_from_today)).input
         
     if not share_stretegy_across_time:
         outputs = model.get_layer("delta_" + str(days_from_today))(inputs)
