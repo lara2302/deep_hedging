@@ -1,5 +1,4 @@
 from tensorflow.keras.layers import Input, Dense, Concatenate, Subtract, \
-from tensorflow.keras.layers import Input, Dense, Concatenate, Subtract, \
                 Lambda, Add, Dot, BatchNormalization, Activation, LeakyReLU
 from tensorflow.keras.models import Model
 from tensorflow.keras.initializers import he_normal, Zeros, he_uniform, TruncatedNormal
