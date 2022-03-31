@@ -17,6 +17,7 @@ intitalizer_dict = {
 bias_initializer=he_uniform()
 
 class Strategy_Layer(tf.keras.layers.Layer):
+    #test if upload works
     def __init__(self, d = None, m = None, num_instr = None, use_batch_norm = None, \
         kernel_initializer = "he_uniform", \
         activation_dense = "relu", activation_output = "linear", 
