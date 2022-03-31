@@ -1,4 +1,5 @@
 from tensorflow.keras.layers import Input, Dense, Concatenate, Subtract, \
+from tensorflow.keras.layers import Input, Dense, Concatenate, Subtract, \
                 Lambda, Add, Dot, BatchNormalization, Activation, LeakyReLU
 from tensorflow.keras.models import Model
 from tensorflow.keras.initializers import he_normal, Zeros, he_uniform, TruncatedNormal
@@ -16,13 +17,14 @@ intitalizer_dict = {
 bias_initializer=he_uniform()
 
 class Strategy_Layer(tf.keras.layers.Layer):
-    def __init__(self, d = None, m = None, use_batch_norm = None, \
+    def __init__(self, d = None, m = None, num_instr = None, use_batch_norm = None, \
         kernel_initializer = "he_uniform", \
         activation_dense = "relu", activation_output = "linear", 
         delta_constraint = None, day = None):
         super().__init__(name = "delta_" + str(day))
         self.d = d
         self.m = m
+        self.num_instr = num_instr #number of hedging instruments
         self.use_batch_norm = use_batch_norm
         self.activation_dense = activation_dense
         self.activation_output = activation_output
@@ -40,7 +42,7 @@ class Strategy_Layer(tf.keras.layers.Layer):
            if self.use_batch_norm:
                self.intermediate_BN[i] = BatchNormalization(momentum = 0.99, trainable=True)
            
-        self.output_dense = Dense(1, 
+        self.output_dense = Dense(self.num_instr, 
                       kernel_initializer=self.kernel_initializer,
                       bias_initializer = bias_initializer,
                       use_bias=True)     
@@ -77,17 +79,17 @@ class Strategy_Layer(tf.keras.layers.Layer):
         
         return output
     
-def Deep_Hedging_Model(N = None, d = None, m = None, \
+def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, \
         risk_free = None, dt = None, initial_wealth = 0.0, epsilon = 0.0, \
         final_period_cost = False, strategy_type = None, use_batch_norm = None, \
         kernel_initializer = "he_uniform", \
         activation_dense = "relu", activation_output = "linear", 
-        delta_constraint = None, share_stretegy_across_time = False, 
+        delta_constraint = None, share_strategy_across_time = False, 
         cost_structure = "proportional"):
         
     # State variables.
-    prc = Input(shape=(1,), name = "prc_0")
-    information_set = Input(shape=(1,), name = "information_set_0")
+    prc = Input(shape=(num_instr,), name = "prc_0")
+    information_set = Input(shape=(num_instr,), name = "information_set_0")
 
     inputs = [prc, information_set]
     
@@ -99,16 +101,17 @@ def Deep_Hedging_Model(N = None, d = None, m = None, \
             elif strategy_type == "recurrent":
                 if j ==0:
                     # Tensorflow hack to deal with the dimension problem.
-                    #   Strategy at t = -1 should be 0. 
+                    # Strategy at t = -1 should be 0. 
                     # There is probably a better way but this works.
                     # Constant tensor doesn't work.
-                    strategy = Lambda(lambda x: x*0.0)(prc)
+                    scalar = np.zeros(shape=(1,1))*1
+                    strategy = Lambda(lambda x: x[0]*x[1], output_shape=lambda x:x[0])([prc,scalar])
 
                 helper1 = Concatenate()([information_set,strategy])
 
             # Determine if the strategy function depends on time t or not.
-            if not share_stretegy_across_time:
-                strategy_layer = Strategy_Layer(d = d, m = m, 
+            if not share_strategy_across_time:
+                strategy_layer = Strategy_Layer(d = d, m = m, num_instr = num_instr,
                          use_batch_norm = use_batch_norm, \
                          kernel_initializer = kernel_initializer, \
                          activation_dense = activation_dense, \
@@ -119,7 +122,7 @@ def Deep_Hedging_Model(N = None, d = None, m = None, \
                 if j == 0:
                     # Strategy does not depend on t so there's only a single
                     # layer at t = 0
-                    strategy_layer = Strategy_Layer(d = d, m = m, 
+                    strategy_layer = Strategy_Layer(d = d, m = m, num_instr = num_instr,
                              use_batch_norm = use_batch_norm, \
                              kernel_initializer = kernel_initializer, \
                              activation_dense = activation_dense, \
@@ -155,14 +158,15 @@ def Deep_Hedging_Model(N = None, d = None, m = None, \
             # w_{t+1} = w_t + (strategy_t-strategy_{t+1})*prc_t
             #         = w_t - delta_strategy*prc_t
             mult = Dot(axes=1)([delta_strategy, prc])
+            #test = Lambda(lambda x: tf.math.reduce_sum(x,axis=1,keepdims=True))(mult) - NOT NEEDED?
             wealth = Subtract(name = "wealth_" + str(j))([wealth, mult])
 
             # Accumulate interest rate for next period.
             FV_factor = np.exp(risk_free*dt)
             wealth = Lambda(lambda x: x*FV_factor)(wealth)
             
-            prc = Input(shape=(1,),name = "prc_" + str(j+1))
-            information_set = Input(shape=(1,), name = "information_set_" + str(j+1))
+            prc = Input(shape=(num_instr,),name = "prc_" + str(j+1))
+            information_set = Input(shape=(num_instr,), name = "information_set_" + str(j+1))
             
             strategy = strategyhelper    
             
@@ -187,6 +191,7 @@ def Deep_Hedging_Model(N = None, d = None, m = None, \
             # Wealth for the final period
             # -delta_strategy = strategy_t
             mult = Dot(axes=1)([strategy, prc])
+            #test = Lambda(lambda x: tf.math.reduce_sum(x,axis=1,keepdims=True))(mult) - NOT NEEDED?
             wealth = Add()([wealth, mult])
                  
             # Add the terminal payoff of any derivatives.
@@ -196,10 +201,10 @@ def Deep_Hedging_Model(N = None, d = None, m = None, \
             wealth = Add(name = "wealth_" + str(j))([wealth,payoff])
     return Model(inputs=inputs, outputs=wealth)
 
-def Delta_SubModel(model = None, days_from_today = None, share_stretegy_across_time = False):
+def Delta_SubModel(model = None, days_from_today = None, share_strategy_across_time = False):
     inputs = model.get_layer("delta_" + str(days_from_today)).input
         
-    if not share_stretegy_across_time:
+    if not share_strategy_across_time:
         outputs = model.get_layer("delta_" + str(days_from_today))(inputs)
     else:
         outputs = model.get_layer("delta_0")(inputs)
