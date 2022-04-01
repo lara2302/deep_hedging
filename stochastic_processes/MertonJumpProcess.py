@@ -33,4 +33,4 @@ class MertonJumpProcess:
                         self.sigma*np.sqrt(dt) * np.random.normal(size=size)), axis=0)
         S[1:time_step+1,:] = np.exp(geo+poi_rv)*self.s0
         
-        return np.tranpose(S)                               
+        return np.transpose(S) #np.tranpose() to make the dimensions coincide with BlackScholesProcess                           
