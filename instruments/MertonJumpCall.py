@@ -33,7 +33,7 @@ class MertonJumpCall():
                   (self.risk_free + self.sigma**2/2)*tau) / (self.sigma*np.sqrt(tau))
             d2 = d1 - self.sigma * np.sqrt(tau)
             C[i,:-1] = S_path * norm.cdf(d1) - self.strike * np.exp(-self.risk_free*tau)* norm.cdf(d2)
-            return C
+        return C
 
     def MertonCall(self):
         # Merton-Call-Price = Black-Scholes price conditional on knowing exactly 
