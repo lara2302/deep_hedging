@@ -1,1 +1,2 @@
 from .BlackScholesProcess import BlackScholesProcess
+from .MertonJumpProcess import MertonJumpProcess
