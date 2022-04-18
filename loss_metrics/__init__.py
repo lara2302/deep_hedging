@@ -1,2 +1,2 @@
 from .entropy import Entropy
-from .cvar import CVaR
+from .expectedshortfall import ExpectedShortfall
