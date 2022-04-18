@@ -1,4 +1,5 @@
 import tensorflow_probability as tfp
+import tensorflow as tf
 
 def ExpectedShortfall(wealth=None,alpha=None):
   VaR = tfp.stats.percentile(wealth,100*(1-alpha))
