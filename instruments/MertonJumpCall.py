@@ -35,7 +35,7 @@ class MertonJumpCall():
             C[i,:-1] = S_path * norm.cdf(d1) - self.strike * np.exp(-self.risk_free*tau)* norm.cdf(d2)
         return C
 
-    def MertonCall(self):
+    def MertonCall(self,cutoff = 5):
         # Merton-Call-Price = Black-Scholes price conditional on knowing exactly 
         # how many jumps will occur and weights these values by their corresponding 
         # probability under the Poisson distribution
@@ -48,7 +48,7 @@ class MertonJumpCall():
         for i in range(num_paths):
             p=0
             S_path = self.S[i:(i+1),:]
-            for k in range(18):
+            for k in range(cutoff):
                 # sum is truncated at 18 as probability becomes negligible small 
                 r_k = self.risk_free - self.jump_intensity*(self.jump_mean-1) + (k*np.log(self.jump_mean) ) / tau
                 sigma_k = np.sqrt(self.sigma**2 + (k*self.jump_volatility** 2) / tau)
