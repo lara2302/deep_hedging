@@ -49,7 +49,7 @@ class MertonJumpCall():
             p=0
             S_path = self.S[i:(i+1),:]
             for k in range(cutoff):
-                # sum is truncated at 18 as probability becomes negligible small 
+                # sum is truncated at 5 (if not specified differently) as probability becomes negligible small 
                 r_k = self.risk_free - self.jump_intensity*(self.jump_mean-1) + (k*np.log(self.jump_mean) ) / tau
                 sigma_k = np.sqrt(self.sigma**2 + (k*self.jump_volatility** 2) / tau)
                 k_fact = np.array(np.math.factorial(k),dtype=float)
