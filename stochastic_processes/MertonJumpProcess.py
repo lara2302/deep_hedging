@@ -1,36 +1,69 @@
 import numpy as np
+import scipy.stats as ss
+from tqdm import trange
 
-# References:
-# https://www.codearmo.com/python-tutorial/merton-jump-diffusion-model-python
+class MertonJumpProcess():
+    """
+    Class for the Merton process:
+    mu = constant drift coefficient (sometimes referred to as "b" in notes)
+    r = risk free constant rate
+    sig = constant diffusion coefficient
+    lam = jump activity
+    muJ = jump mean
+    sigJ = jump standard deviation
+    risk_neutral = Boolean: True = risk-neutral dynamics
+    """ 
+    def __init__(self,S0 = 100, mu=0.0,r=0.0,sig=0.2,lam=1.0,muJ=0.0,sigJ=0.2,risk_neutral=True):
+        self.S0 = S0
+        self.mu = mu
+        self.r = r
+        self.lam = lam
+        self.muJ = muJ
+        self.risk_neutral = risk_neutral
+        if (sig<0 or sigJ<0):
+            raise ValueError("sig and sigJ must be positive")
+        else:
+            self.sig = sig
+            self.sigJ = sigJ
+    
+    def gen_path(self, length=None, time_step=None, num_paths=None):
+        """
+        length = T (end of the interval)
+        time_step = number of discretization time steps
+        num_paths = number of simulated paths
+        """
+        if self.risk_neutral == True:
+            self.mu = self.r - self.lam * (np.exp(self.muJ + (self.sigJ**2)/2)-1) - (self.sig**2)/2
+      
+        size = (time_step,num_paths)
+        dt = length/time_step 
+        X = np.zeros((num_paths,time_step+1))
+        X[:,0] = np.log(self.S0)
+        X_leftlimit = np.zeros((num_paths,time_step+1))
+        X_leftlimit[:,0] = np.log(self.S0)
+        X_cont = np.zeros((num_paths,time_step+1))
+        X_cont[:,0] = np.log(self.S0)
 
-# Assigned seed for testing. Set to 0 for random seeds.
+        for i in trange(num_paths):
+            N = ss.poisson.rvs(self.lam*length,size=1)
+            U = ss.uniform.rvs(0,length,size=N)
+            jumptimes = np.sort(U)
+            Y = ss.norm.rvs(self.muJ,self.sigJ,size=N)
 
-# Merton Jump Diffusion Process.
-class MertonJumpProcess:
-    def __init__(self, s0=None, sigma=None, risk_free=None,
-                 dividend=None, day_count=None, jump_intensity=None, jump_mean=None,
-                 jump_volatility=None, seed=0):
-        self.s0 = s0
-        self.sigma = sigma
-        self.risk_free = risk_free
-        self.dividend = dividend
-        self.day_count = day_count
-        self.seed = seed
-        self.jump_intensity = jump_intensity
-        self.jump_volatility = jump_volatility
-        self.jump_mean = jump_mean
+            for j in range(time_step):
+                Z = ss.norm.rvs(0,1,size=1)
+                # IMPORTANT: - (self.sig**2)/2 NECESSARY OR NOT? IF NO: ADD TO SELF.MU FOR RISK_NEUTRAL
+                X_cont[i,j+1] = X_cont[i,j] + (self.mu)*dt + np.sqrt(dt)*self.sig*Z
+                t_old = j*dt
+                t = (j+1)*dt
 
-    def gen_paths(self, length=None, time_step=None, num_paths=None):
-        size = (time_step, num_paths)
-        dt = length/time_step
-        
-        S = np.zeros((time_step+1, num_paths))
-        S[0,:] = self.s0
-        poi_rv = np.multiply(np.random.poisson(self.jump_intensity*dt, size=size),
-                             np.random.normal(self.jump_mean, self.jump_volatility, size=size)).cumsum(axis=0)
-        geo = np.cumsum(((self.risk_free - self.sigma**2/2 - \
-                        self.jump_intensity*(self.jump_mean + self.jump_volatility**2*0.5))*dt + \
-                        self.sigma*np.sqrt(dt) * np.random.normal(size=size)), axis=0)
-        S[1:time_step+1,:] = np.exp(geo+poi_rv)*self.s0
-        
-        return np.transpose(S) #np.tranpose() to make the dimensions coincide with BlackScholesProcess                           
+                X[i,j+1] = X_cont[i,j+1] + sum((jumptimes <= t)*Y)
+
+                if sum((jumptimes <= t)) > sum((jumptimes <= t_old)):
+                    X_leftlimit[i,j+1] = X[i,j]
+                else: 
+                    X_leftlimit[i,j+1] = X[i,j+1]
+      
+        S = np.exp(X)
+        S_leftlimit = np.exp(X_leftlimit)
+        return S, S_leftlimit                        
