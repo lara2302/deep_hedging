@@ -4,6 +4,7 @@
 import numpy as np
 from scipy.stats import norm
 from scipy.optimize import minimize_scalar   
+from tqdm import trange
 
 class MertonJumpCall():
     def __init__(self, S=None, sigma=None, T=None, risk_free=None, strike=None,
@@ -45,7 +46,7 @@ class MertonJumpCall():
         C[:,-1] = payoff_func(self.S[:,-1])
         tau = self.T - np.linspace(0,self.T,timesteps-1,endpoint=False)
         self.jump_mean = np.exp(self.jump_mean+self.jump_volatility**2*0.5) #THINK ABOUT - NECESSARY? MEANING?
-        for i in range(num_paths):
+        for i in trange(num_paths):
             p=0
             S_path = self.S[i:(i+1),:]
             for k in range(cutoff):
