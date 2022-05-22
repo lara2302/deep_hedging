@@ -43,17 +43,19 @@ class MertonJumpProcess():
         X_leftlimit[:,0] = np.log(self.S0)
         X_cont = np.zeros((num_paths,time_step+1))
         X_cont[:,0] = np.log(self.S0)
+        N_total = ss.poisson.rvs(self.lam*length,size=num_paths)
+        Z_total = ss.norm.rvs(0,1,size=(num_paths,time_step))
+
+        X_cont[:, 1:] = np.sqrt(dt)*self.sig*Z_total + self.mu*dt
+        X_cont = np.cumsum(X_cont,axis=1) # cumulative sum over rows
 
         for i in trange(num_paths):
-            N = ss.poisson.rvs(self.lam*length,size=1)
+            N = N_total[i]
             U = ss.uniform.rvs(0,length,size=N)
             jumptimes = np.sort(U)
             Y = ss.norm.rvs(self.muJ,self.sigJ,size=N)
 
             for j in range(time_step):
-                Z = ss.norm.rvs(0,1,size=1)
-                # IMPORTANT: - (self.sig**2)/2 NECESSARY OR NOT? IF NO: ADD TO SELF.MU FOR RISK_NEUTRAL
-                X_cont[i,j+1] = X_cont[i,j] + (self.mu)*dt + np.sqrt(dt)*self.sig*Z
                 t_old = j*dt
                 t = (j+1)*dt
 
@@ -66,4 +68,4 @@ class MertonJumpProcess():
       
         S = np.exp(X)
         S_leftlimit = np.exp(X_leftlimit)
-        return S, S_leftlimit                        
+        return S, S_leftlimit, N_total                    
