@@ -2,7 +2,7 @@ from tensorflow.keras.layers import Input, Dense, Concatenate, Subtract, \
                 Lambda, Add, Dot, BatchNormalization, Activation, LeakyReLU
 from tensorflow.keras.models import Model
 from tensorflow.keras.initializers import he_normal, Zeros, he_uniform, TruncatedNormal
-import tensorflow.keras.backend as K
+import tensorflow.keras.backend as Kbackend
 import tensorflow as tf
 import numpy as np
 
@@ -16,7 +16,6 @@ intitalizer_dict = {
 bias_initializer=he_uniform()
 
 class Strategy_Layer(tf.keras.layers.Layer):
-    #test if upload works
     def __init__(self, d = None, m = None, num_instr = None, use_batch_norm = None, \
         kernel_initializer = "he_uniform", \
         activation_dense = "relu", activation_output = "linear", 
@@ -35,12 +34,12 @@ class Strategy_Layer(tf.keras.layers.Layer):
         self.intermediate_BN = [None for _ in range(d)]
         
         for i in range(d):
-           self.intermediate_dense[i] = Dense(self.m,    
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=bias_initializer,
-                        use_bias=(not self.use_batch_norm))
-           if self.use_batch_norm:
-               self.intermediate_BN[i] = BatchNormalization(momentum = 0.99, trainable=True)
+            self.intermediate_dense[i] = Dense(self.m,
+                                               kernel_initializer=self.kernel_initializer,
+                                               bias_initializer=bias_initializer,
+                                               use_bias=(not self.use_batch_norm))
+            if self.use_batch_norm:
+                self.intermediate_BN[i] = BatchNormalization(momentum = 0.99, trainable=True)
            
         self.output_dense = Dense(self.num_instr, 
                       kernel_initializer=self.kernel_initializer,
@@ -100,7 +99,6 @@ def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, \
                 helper1 = information_set
             elif strategy_type == "recurrent":
                 if j ==0:
-                    # Tensorflow hack to deal with the dimension problem.
                     # Strategy at t = -1 should be 0. 
                     # There is probably a better way but this works.
                     # Constant tensor doesn't work.
@@ -141,12 +139,12 @@ def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, \
                 delta_strategy = Subtract(name = "diff_strategy_" + str(j))([strategyhelper, strategy])
             
             if cost_structure == "proportional": 
-                # Proportional transaction cost
-                absolutechanges = Lambda(lambda x : K.abs(x), name = "absolutechanges_" + str(j))(delta_strategy)
-                costs = Dot(axes=1)([absolutechanges,prc])
-                costs = Lambda(lambda x : epsilon*x, name = "cost_" + str(j))(costs)
+                # Proportional transaction costs
+                absolutechanges = Lambda(lambda x : Kbackend.abs(x), name = "absolutechanges_" + str(j))(delta_strategy)
+                costs = Lambda(lambda x : epsilon*x, name = "costs_step1_" + str(j))(absolutechanges)
+                costs = Dot(name = "costs_" + str(j),axes=1)([costs,prc])
             elif cost_structure == "constant":
-                # Tensorflow hack..
+                # Constant transaction costs
                 costs = Lambda(lambda x : epsilon + x*0.0)(prc)
                     
             if j == 0:
@@ -158,7 +156,6 @@ def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, \
             # w_{t+1} = w_t + (strategy_t-strategy_{t+1})*prc_t
             #         = w_t - delta_strategy*prc_t
             mult = Dot(axes=1)([delta_strategy, prc])
-            #test = Lambda(lambda x: tf.math.reduce_sum(x,axis=1,keepdims=True))(mult) - NOT NEEDED?
             wealth = Subtract(name = "wealth_" + str(j))([wealth, mult])
 
             # Accumulate interest rate for next period.
@@ -179,19 +176,18 @@ def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, \
             # when the position is liquidated.
             if final_period_cost:
                 if cost_structure == "proportional":
-                    # Proportional transaction cost
-                    absolutechanges = Lambda(lambda x : K.abs(x), name = "absolutechanges_" + str(j))(strategy)
-                    costs = Dot(axes=1)([absolutechanges,prc])
-                    costs = Lambda(lambda x : epsilon*x, name = "cost_" + str(j))(costs)
+                    # Proportional transaction costs.
+                    absolutechanges = Lambda(lambda x : Kbackend.abs(x), name = "absolutechanges_" + str(j))(strategy)
+                    costs = Lambda(lambda x : epsilon*x, name = "costs_step1_" + str(j))(absolutechanges)
+                    costs = Dot(name = "costs_" + str(j),axes=1)([costs,prc])
                 elif cost_structure == "constant":
-                    # Tensorflow hack..
+                    # Constant transaction costs.
                     costs = Lambda(lambda x : epsilon + x*0.0)(prc)
 
                 wealth = Subtract(name = "costDot_" + str(j))([wealth, costs])
             # Wealth for the final period
             # -delta_strategy = strategy_t
             mult = Dot(axes=1)([strategy, prc])
-            #test = Lambda(lambda x: tf.math.reduce_sum(x,axis=1,keepdims=True))(mult) - NOT NEEDED?
             wealth = Add()([wealth, mult])
                  
             # Add the terminal payoff of any derivatives.

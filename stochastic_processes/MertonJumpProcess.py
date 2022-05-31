@@ -68,4 +68,4 @@ class MertonJumpProcess():
       
         S = np.exp(X)
         S_leftlimit = np.exp(X_leftlimit)
-        return S, S_leftlimit, N_total                    
+        return S, S_leftlimit, N_total, Z_total                  
