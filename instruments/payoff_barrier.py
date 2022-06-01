@@ -1,3 +1,5 @@
+import numpy as np
+
 def payoff_barrier(x,K,b,putorcall):
     num_paths, time_steps = np.shape(x)
     payoff = np.zeros(num_paths)
