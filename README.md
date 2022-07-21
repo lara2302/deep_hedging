@@ -17,6 +17,7 @@ The structure of the repository is as follows:
   * **variance_optimal_with_ES** = method of Lagrange multipliers that minimizes the variance optimal loss with expected shortfall as constraint.
 * **stochastic_processes** contains functions that generate sample paths from either the Black-Scholes or Merton jump diffusion model.
 * **traditional_hedging** contains functions that solve a PIDE for either standard European or barrier options in the Merton jump model and compute the hedging strategy for a given set of sample paths using delta, delta-gamma and quadratic hedging.
+* **utilities** contains a function that splits simulated data into training and testing sample.
 <br> <br>
 
 
@@ -34,6 +35,7 @@ To be more specific, the following parts were used and changes were made.
   * *EuropeanCall* in **instruments** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
   * Only used *entropy* in **loss_metrics** which, however, did not work well for model with jumps and as a consequence eventually not used.
   * *BlackScholesProcess* in **stochastic_processes** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
+  * *train_test_split* in **utilities** used without changes.
  
  * Merton PIDE (changes made in 2022)
    * *PIDE_price* in **Merton_pricer** utilized and extended to including barrier options. The output is then used for the implementation of delta, delta-gamma and quadratic hedge.
