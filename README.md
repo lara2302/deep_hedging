@@ -1,21 +1,53 @@
-# Deep Hedging Demo
-## Pricing Derivatives using Machine Learning
+# Deep Hedging - A Novel Approach to Hedging Jump Risk
+## Repository for the WU Master Thesis by Lara Hofmann
 
-![Image of Demo](https://user-images.githubusercontent.com/7247589/99870023-ca5ec380-2b9d-11eb-8646-4e78ad87f8ad.png)
+The structure of the repository is as follows:
 
-``` 1) Jupyter version: Run ./colab/deep_hedging_colab.ipynb on Colab. ```
+* **colab** contains the execution scripts for several numerical experiments created with `Google Colaboratory` and includes some of the resulting plots.
+* **deep_hedging** contains the functions that define the deep hedging model as well compute the likelihood ratio weights for the application of importance sampling.
+* **instruments** contains functions that price different options in different models or define the payoff function:
+  * **EuropeanCall** = European standard call in the Black-Scholes model,
+  * **MertonJumpCall** = European standard call in the Merton jump model (infinite sum closed-form solution),
+  * **MertonJumpPut** = European standard put in the Merton jump model (infinite sum closed-form solution),
+  * **payoff_barrier** =  terminal payoff of an up-and-out barrier option (either call or put).
+* **loss_metrics** contains different loss metrics that can be used as the loss function of the deep neural network: 
+  * **entropy** = entropy (exponential) risk measure,
+  * **expectedshortfall** = expected shortfall of the terminal hedging error (only penalizes negative but not positive deviations from zero),
+  * **variance_optimal** = variance optimal loss (equals the optimality criterion of quadratic hedging),
+  * **variance_optimal_with_ES** = method of Lagrange multipliers that minimizes the variance optimal loss with expected shortfall as constraint.
+* **stochastic_processes** contains functions that generate sample paths from either the Black-Scholes or Merton jump diffusion model.
+* **traditional_hedging** contains functions that solve a PIDE for either standard European or barrier options in the Merton jump model and compute the hedging strategy for a given set of sample paths using delta, delta-gamma and quadratic hedging.
+<br> <br>
 
-``` 2) Gui version: Run python ./pyqt5/main.py Check ./requirements.txt for main dependencies.```
 
-The Black-Scholes (BS) model – developed in 1973 and based on Nobel Prize winning works – has been the de-facto standard for pricing options and other financial derivatives for nearly half a century. The model can be used, under the assumption of a perfect financial market, to calculate an options price and the associated risk sensitivities. These risk sensitivities can then be theoretically used by a trader to create a perfect hedging strategy that eliminates all risks in a portfolio of options. However, the necessary conditions for a perfect financial market, such as zero transaction cost and the possibility of continuous trading, are difficult to meet in the real world. Therefore, in practice, banks have to rely on their traders’ intuition and experience to augment the BS model hedges with manual adjustments to account for these market imperfections.
-The derivative desks of every bank all hedge their positions, and their PnL and risk exposure depend crucially on the quality of their hedges. If their hedges does not properly account for market imperfections, banks might underestimate the true risk exposure of their portfolios. On the other hand, if their hedges overestimate the cost of market imperfections, banks might overprice their positions (relative to their competitors) and hence risk losing trades and/or customers. Over the last few decades, the financial market has become increasingly sophisticated. Intuition and experience of traders might not be sufficiently fast and accurate to compute the impact of market imperfections on their portfolios and to come up with good manual adjustments to their BS model hedges. 
+The bases for the implementation of the deep hedging algorithm and the solution of the Merton PIDE via finite differences are:
 
-These limitations of the BS model are well-known, but neither academics nor practitioners have managed to develop alternatives to properly and systematically account for market frictions – at least not successful enough to be widely adopted by banks. Could machine learning (ML) be the cure? Last year, the Risk magazine reported that JP Morgan has begun to use machine learning to hedge (a.k.a. Deep Hedging) a portion of its vanilla index options flow book and plan to roll out the similar technology for single stocks, baskets and light exotics.  According to Risk.net (2019), the technology can create hedging strategies that “automatically factor in market fictions, such as transaction costs, liquidity constraints and risk limits”. More amazingly, the ML algorithm “far outperformed” hedging strategies derived from the BS model, and it could reduce the cost of hedging (in certain asset class) by “as much as 80%”. The technology has been heralded by some as “a breakthrough in quantitative finance, one that could mark the end of the Black-Scholes era.” Hence, it is not surprising that firms, such as Bank of America, Societe Generale and IBM, are reportedly developing their own ML-based system for derivative hedging.
+1) [Deep hedging implementation](https://github.com/YuMan-Tam/deep-hedging) by Yu Man Tam (last update in Jan 2021),
 
-Machine learning algorithms are often referred to as “black boxes” because of the inherent opaqueness and difficulties to inspect how an algorithm is able to accomplishing what is accomplishing. Buhler et al (2019) recently published a paper outlining the mechanism of this ground-breaking technology. We follow their outlined methodology to implement and replicate the “deep hedging” algorithm under different simulated market conditions. Given a distribution of the underlying assets and trader preference, the “deep hedging” algorithm attempts to identify the optimal hedge strategy (as a function of over 10k model parameters) that minimizes the residual risk of a hedged portfolio. We implement the “deep hedging” algorithm to demonstrate its potential benefit in a simplified yet sufficiently realistic setting. We first benchmark the deep hedging strategy against the classic Black-Scholes hedging strategy in a perfect world with no transaction cost, in which case the performance of both strategies should be similar. Then, we benchmark again in a world with market friction (i.e. non-zero transaction costs), in which case the deep hedging strategy should outperform the classic Black-Scholes hedging strategy. 
+2) [Merton PIDE](https://github.com/cantaro86/Financial-Models-Numerical-Methods/tree/master/functions) by Nicola Cantarutti (last update in Jul 2020).
+
+To be more specific, the following parts were used and changes were made.
+
+* Deep hedging algorithm (changes made in 2022)
+  * **colab** used as a basis for experiments but modified and added a lot.
+  * **deep_hedging** utilized, extended from one possible hedging instrument to arbitrary many possible hedging instruments and changed transaction costs and importance sampling.
+  * *EuropeanCall* in **instruments** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
+  * Only used *entropy* in **loss_metrics** which, however, did not work well for model with jumps and as a consequence eventually not used.
+  * *BlackScholesProcess* in **stochastic_processes** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
+ 
+ * Merton PIDE (changes made in 2022)
+   * *PIDE_price* in **Merton_pricer** utilized and extended to including barrier options. The output is then used for the implementation of delta, delta-gamma and quadratic hedge.
+   * *Option_param* in **Parameters** used for **Merton_pricer** (simply passes on information of respective option).
+   * *Merton_process* in **Processes** used for **Merton_pricer** (simply passes on information of respective Merton process).
+<br> <br>
 
 **References:**
 
-Risk.net, (2019). “Deep hedging and the end of the Black-Scholes era.”
-
-Hans Buhler et al, (2019). “Deep Hedging.” Quantitative Finance, 19(8).
+* David Applebaum. *Levy processes and stochastic calculus.* Cambridge university press, 2009.
+* Hans Buehler, Lukas Gonon, Josef Teichmann, and Ben Wood. *Deep hedging.* Quantitative Finance, 19(8):1271-1291, 2019.
+* Nicola Cantarutti. *Numerical study of the merton pide in option pricing.* Available at SSRN 3579408, 2020.
+* Nicola Cantarutti. *Option pricing in exponential Levy models with transaction costs.* PhD thesis, Universidade de Lisboa (Portugal), 2020.
+* RamaCont, PeterTankov, and Ekaterina Voltchkova. *Hedging with options in models with jumps.* In Stochastic analysis and applications, pages 197-217. Springer, 2007.
+* Laetitia Badouraly Kassim, Jerome Lelong, and Imane Loumrhari. *Importance sampling for jump processes and applications to finance.* arXiv preprint arXiv:1307.2218, 2013.
+* Robert C Merton. *Option pricing when underlying stock returns are discontinuous.* Journal of financial economics, 3(1-2):125-144, 1976.
+* Peter Tankov. *Financial modelling with jump processes.* Chapman and Hall/CRC, 2003.
