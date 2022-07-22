@@ -6,15 +6,15 @@ The structure of the repository is as follows:
 * **colab** contains the execution scripts for several numerical experiments created with `Google Colaboratory` and includes some of the resulting plots.
 * **deep_hedging** contains the functions that define the deep hedging model as well compute the likelihood ratio weights for the application of importance sampling.
 * **instruments** contains functions that price different options in different models or define the payoff function:
-  * **EuropeanCall** = European standard call in the Black-Scholes model,
-  * **MertonJumpCall** = European standard call in the Merton jump model (infinite sum closed-form solution),
-  * **MertonJumpPut** = European standard put in the Merton jump model (infinite sum closed-form solution),
-  * **payoff_barrier** =  terminal payoff of an up-and-out barrier option (either call or put).
+  * *EuropeanCall* = European standard call in the Black-Scholes model,
+  * *MertonJumpCall* = European standard call in the Merton jump model (infinite sum closed-form solution),
+  * *MertonJumpPut* = European standard put in the Merton jump model (infinite sum closed-form solution),
+  * *payoff_barrier* =  terminal payoff of an up-and-out barrier option (either call or put).
 * **loss_metrics** contains different loss metrics that can be used as the loss function of the deep neural network: 
-  * **entropy** = entropy (exponential) risk measure,
-  * **expectedshortfall** = expected shortfall of the terminal hedging error (only penalizes negative but not positive deviations from zero),
-  * **variance_optimal** = variance optimal loss (equals the optimality criterion of quadratic hedging),
-  * **variance_optimal_with_ES** = method of Lagrange multipliers that minimizes the variance optimal loss with expected shortfall as constraint.
+  * *entropy* = entropy (exponential) risk measure,
+  * *expectedshortfall* = expected shortfall of the terminal hedging error (only penalizes negative but not positive deviations from zero),
+  * *variance_optimal* = variance optimal loss (equals the optimality criterion of quadratic hedging),
+  * *variance_optimal_with_ES* = method of Lagrange multipliers that minimizes the variance optimal loss with expected shortfall as constraint.
 * **stochastic_processes** contains functions that generate sample paths from either the Black-Scholes or Merton jump diffusion model.
 * **traditional_hedging** contains functions that solve a PIDE for either standard European or barrier options in the Merton jump model and compute the hedging strategy for a given set of sample paths using delta, delta-gamma and quadratic hedging.
 * **utilities** contains a function that splits simulated data into training and testing sample.
@@ -23,21 +23,21 @@ The structure of the repository is as follows:
 
 The bases for the implementation of the deep hedging algorithm and the solution of the Merton PIDE via finite differences are:
 
-1) [Deep hedging implementation](https://github.com/YuMan-Tam/deep-hedging) by Yu Man Tam (last update in Jan 2021),
+1) [Deep hedging implementation](https://github.com/YuMan-Tam/deep-hedging) by Yu Man Tam (version from January 2021),
 
-2) [Merton PIDE](https://github.com/cantaro86/Financial-Models-Numerical-Methods/tree/master/functions) by Nicola Cantarutti (last update in Jul 2020).
+2) [Merton PIDE](https://github.com/cantaro86/Financial-Models-Numerical-Methods/tree/master/functions) by Nicola Cantarutti (version from July 2020).
 
 To be more specific, the following parts were used and changes were made.
 
-* Deep hedging algorithm (changes made in 2022)
+* Deep hedging algorithm (changes made from 01/2022-07/2022)
   * **colab** used as a basis for experiments but modified and added a lot.
-  * **deep_hedging** utilized, extended from one possible hedging instrument to arbitrary many possible hedging instruments and changed transaction costs and importance sampling.
+  * **deep_hedging** utilized, extended from one possible hedging instrument to arbitrary many possible hedging instruments, changed transaction costs, included importance sampling and modified network structure to allow for path-dependent options.
   * *EuropeanCall* in **instruments** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
   * Only used *entropy* in **loss_metrics** which, however, did not work well for model with jumps and as a consequence eventually not used.
   * *BlackScholesProcess* in **stochastic_processes** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
   * *train_test_split* in **utilities** used without changes.
  
- * Merton PIDE (changes made in 2022)
+ * Merton PIDE (changes made from 01/2022-07/2022)
    * *PIDE_price* in **Merton_pricer** utilized and extended to including barrier options. The output is then used for the implementation of delta, delta-gamma and quadratic hedge.
    * *Option_param* in **Parameters** used for **Merton_pricer** (simply passes on information of respective option).
    * *Merton_process* in **Processes** used for **Merton_pricer** (simply passes on information of respective Merton process).
