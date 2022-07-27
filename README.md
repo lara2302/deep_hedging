@@ -30,15 +30,15 @@ The bases for the implementation of the deep hedging algorithm and the solution 
 To be more specific, the following parts were used and changes were made.
 
 * Deep hedging algorithm (changes made from 01/2022-07/2022)
-  * **colab** used as a basis for experiments but modified and added a lot.
-  * **deep_hedging** utilized, extended from one possible hedging instrument to arbitrary many possible hedging instruments, changed transaction costs, included importance sampling and modified network structure to allow for path-dependent options.
+  * **colab** used as a basis for experiments but significantly modified and extended.
+  * **deep_hedging** used, extended from one possible to arbitrary many possible hedging instruments, changed transaction costs, included importance sampling and modified network structure to allow for path-dependent options.
   * *EuropeanCall* in **instruments** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
   * Only used *entropy* in **loss_metrics** which, however, did not work well for model with jumps and as a consequence eventually not used.
   * *BlackScholesProcess* in **stochastic_processes** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
   * *train_test_split* in **utilities** used without changes.
  
  * Merton PIDE (changes made from 01/2022-07/2022)
-   * *PIDE_price* in **Merton_pricer** utilized and extended to including barrier options. The output is then used for the implementation of delta, delta-gamma and quadratic hedge.
+   * *PIDE_price* in **Merton_pricer** used and extended to include barrier options. The output is then used for the implementation of delta, delta-gamma and quadratic hedge.
    * *Option_param* in **Parameters** used for **Merton_pricer** (simply passes on information of respective option).
    * *Merton_process* in **Processes** used for **Merton_pricer** (simply passes on information of respective Merton process).
 <br> <br>
