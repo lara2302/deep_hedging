@@ -16,19 +16,20 @@ intitalizer_dict = {
 bias_initializer=he_uniform()
 
 class Strategy_Layer(tf.keras.layers.Layer):
-    def __init__(self, d = None, m = None, num_instr = None, use_batch_norm = None, \
-        kernel_initializer = "he_uniform", \
+    def __init__(self, d = None, m = None, num_instr = None, is_barrier = None, \
+        use_batch_norm = None, kernel_initializer = "he_uniform", \
         activation_dense = "relu", activation_output = "linear", 
         delta_constraint = None, day = None):
         super().__init__(name = "delta_" + str(day))
-        self.d = d
-        self.m = m
+        self.d = d #number of layers
+        self.m = m #number of nodes
         self.num_instr = num_instr #number of hedging instruments
-        self.use_batch_norm = use_batch_norm
-        self.activation_dense = activation_dense
-        self.activation_output = activation_output
-        self.delta_constraint = delta_constraint
-        self.kernel_initializer = kernel_initializer
+        self.is_barrier = is_barrier #boolean: barrier or not
+        self.use_batch_norm = use_batch_norm #boolean: use batch normalization or not
+        self.activation_dense = activation_dense #activation function for hidden layers
+        self.activation_output = activation_output #activation fucntion for output layer
+        self.delta_constraint = delta_constraint #hedging strategy constraint
+        self.kernel_initializer = kernel_initializer #kernel initializer
         
         self.intermediate_dense = [None for _ in range(d)]
         self.intermediate_BN = [None for _ in range(d)]
@@ -37,7 +38,7 @@ class Strategy_Layer(tf.keras.layers.Layer):
             self.intermediate_dense[i] = Dense(self.m,
                                                kernel_initializer=self.kernel_initializer,
                                                bias_initializer=bias_initializer,
-                                               use_bias=(not self.use_batch_norm))
+                                               use_bias = (not self.use_batch_norm))
             if self.use_batch_norm:
                 self.intermediate_BN[i] = BatchNormalization(momentum = 0.99, trainable=True)
            
@@ -48,13 +49,22 @@ class Strategy_Layer(tf.keras.layers.Layer):
         
     def call(self, input):
         for i in range(self.d):
-            if i == 0:
-                output = self.intermediate_dense[i](input)
+            if self.is_barrier:
+                input1 = input[0]
+                input2 = input[1]
+                if i == 0:
+                    output = self.intermediate_dense[i](input1)
+                    output = Concatenate()([output,input2])
+                else:
+                    output = self.intermediate_dense[i](output)    
             else:
-                output = self.intermediate_dense[i](output)                  
+                if i == 0:    
+                    output = self.intermediate_dense[i](input)
+                else:
+                    output = self.intermediate_dense[i](output)                
                 
             if self.use_batch_norm:
- 			    # Batch normalization.
+ 			      # Batch normalization.
                 output = self.intermediate_BN[i](output, training=True)
                 
             if self.activation_dense == "leaky_relu":
@@ -78,7 +88,7 @@ class Strategy_Layer(tf.keras.layers.Layer):
         
         return output
     
-def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, \
+def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, is_barrier = None,\
         risk_free = None, dt = None, initial_wealth = 0.0, epsilon = 0.0, \
         final_period_cost = False, strategy_type = None, use_batch_norm = None, \
         kernel_initializer = "he_uniform", \
@@ -90,27 +100,35 @@ def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, \
     prc = Input(shape=(num_instr,), name = "prc_0")
     information_set = Input(shape=(num_instr,), name = "information_set_0")
 
-    inputs = [prc, information_set]
+    if is_barrier:
+      barrier_hit = Input(shape=(1,), name = "barrier_hit_0")
+      inputs = [prc, information_set,barrier_hit]
+    else:
+      inputs = [prc, information_set]
     
     for j in range(N+1):            
         if j < N:
             # Define the inputs for the strategy layers here.
             if strategy_type == "simple":
-                helper1 = information_set
+                if is_barrier:
+                  inputs_strategy = [information_set,barrier_hit]  
+                else:
+                  inputs_strategy = information_set
             elif strategy_type == "recurrent":
-                if j ==0:
+                if j == 0:
                     # Strategy at t = -1 should be 0. 
-                    # There is probably a better way but this works.
-                    # Constant tensor doesn't work.
                     scalar = np.zeros(shape=(1,1))*1
                     strategy = Lambda(lambda x: x[0]*x[1], output_shape=lambda x:x[0])([prc,scalar])
+                if is_barrier:
+                    inputs_strategy = [Concatenate()([information_set,strategy]),barrier_hit] 
+                else:
+                    inputs_strategy = Concatenate()([information_set,strategy])
 
-                helper1 = Concatenate()([information_set,strategy])
 
             # Determine if the strategy function depends on time t or not.
             if not share_strategy_across_time:
-                strategy_layer = Strategy_Layer(d = d, m = m, num_instr = num_instr,
-                         use_batch_norm = use_batch_norm, \
+                strategy_layer = Strategy_Layer(d = d, m = m, num_instr = num_instr, \
+                         is_barrier = is_barrier, use_batch_norm = use_batch_norm, \
                          kernel_initializer = kernel_initializer, \
                          activation_dense = activation_dense, \
                          activation_output = activation_output, 
@@ -120,16 +138,15 @@ def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, \
                 if j == 0:
                     # Strategy does not depend on t so there's only a single
                     # layer at t = 0
-                    strategy_layer = Strategy_Layer(d = d, m = m, num_instr = num_instr,
-                             use_batch_norm = use_batch_norm, \
+                    strategy_layer = Strategy_Layer(d = d, m = m, num_instr = num_instr, \
+                             is_barrier = is_barrier, use_batch_norm = use_batch_norm, \
                              kernel_initializer = kernel_initializer, \
                              activation_dense = activation_dense, \
                              activation_output = activation_output, 
                              delta_constraint = delta_constraint, \
                              day = j)
             
-            strategyhelper = strategy_layer(helper1)
-            
+            strategyhelper = strategy_layer(inputs_strategy)
             
             # strategy_-1 is set to 0
             # delta_strategy = strategy_{t+1} - strategy_t
@@ -164,11 +181,17 @@ def Deep_Hedging_Model(N = None, d = None, m = None, num_instr = None, \
             
             prc = Input(shape=(num_instr,),name = "prc_" + str(j+1))
             information_set = Input(shape=(num_instr,), name = "information_set_" + str(j+1))
-            
+
+            if is_barrier:
+                barrier_hit = Input(shape=(1,), name = "barrier_hit_" + str(j+1))
+
             strategy = strategyhelper    
             
             if j != N - 1:
-                inputs += [prc, information_set]
+                if is_barrier:
+                    inputs += [prc, information_set,barrier_hit]
+                else: 
+                    inputs += [prc, information_set]
             else:
                 inputs += [prc]
         else:
