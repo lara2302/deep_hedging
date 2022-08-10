@@ -30,7 +30,7 @@ The bases for the implementation of the deep hedging algorithm and the solution 
 To be more specific, the following parts were used and changes were made.
 
 * Deep hedging algorithm (changes made from 01/2022-07/2022)
-  * **colab** used as a basis for experiments but significantly modified and extended.
+  * **colab** used as a basis for experiments but significantly modified and extended. Use *Main_DeepHedging_vs_Traditional.ipynb* file to run code.
   * **deep_hedging** used, extended from one possible to arbitrary many possible hedging instruments, changed transaction costs, included importance sampling and modified network structure to allow for path-dependent options.
   * *EuropeanCall* in **instruments** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
   * Only used *entropy* in **loss_metrics** which, however, did not work well for model with jumps and as a consequence eventually not used.
