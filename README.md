@@ -3,7 +3,7 @@
 
 The structure of the repository is as follows:
 
-* **colab** contains the execution scripts for several numerical experiments created with `Google Colaboratory` and includes some of the resulting plots.
+* **colab** contains the execution scripts for several numerical experiments created with `Google Colaboratory` and includes some of the resulting plots. Use *Main_DeepHedging_vs_Traditional.ipynb* file to run code.
 * **deep_hedging** contains the functions that define the deep hedging model as well compute the likelihood ratio weights for the application of importance sampling.
 * **instruments** contains functions that price different options in different models or define the payoff function:
   * *EuropeanCall* = European standard call in the Black-Scholes model,
@@ -30,7 +30,7 @@ The bases for the implementation of the deep hedging algorithm and the solution 
 To be more specific, the following parts were used and changes were made.
 
 * Deep hedging algorithm (changes made from 01/2022-07/2022)
-  * **colab** used as a basis for experiments but significantly modified and extended. Use *Main_DeepHedging_vs_Traditional.ipynb* file to run code.
+  * **colab** used as a basis for experiments but significantly modified and extended. 
   * **deep_hedging** used, extended from one possible to arbitrary many possible hedging instruments, changed transaction costs, included importance sampling and modified network structure to allow for path-dependent options.
   * *EuropeanCall* in **instruments** used only for primary functionality tests, afterwards not needed since it is based on BS model and Merton model was required.
   * Only used *entropy* in **loss_metrics** which, however, did not work well for model with jumps and as a consequence eventually not used.
